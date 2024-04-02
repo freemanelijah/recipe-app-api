@@ -29,6 +29,8 @@ class UserManager(BaseUserManager):
         user.is_superuser = True
         user.save(using=self._db)
 
+        return user
+
 
 # AbstractBaseUser -> contains auth system but includes no fields.
 # PermissionsMixin -> contains permissions functionality and related fields.
