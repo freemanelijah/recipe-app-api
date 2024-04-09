@@ -8,6 +8,10 @@ from django.contrib.auth import get_user_model
 # When testing models besides the user model, we'll want to test the model directly.
 from core import models
 
+# Helper function to create a new user.
+def create_user(email='user@example.com', password='testpass123'):
+    """Create and return a new user."""
+    return get_user_model().objects.create_user(email, password)
 
 class ModelTests(TestCase):
     """ Test models. """
@@ -64,3 +68,11 @@ class ModelTests(TestCase):
         )
 
         self.assertEqual(str(recipe), recipe.title)
+
+    def test_create_tag(self):
+        """Test creating a tag is successful."""
+        user = create_user()
+        # Create an instance of a tag object using the objects create method.
+        tag = models.Tag.objects.create(user=user, name='Tag1')
+
+        self.assertEqual(str(tag), tag.name)
