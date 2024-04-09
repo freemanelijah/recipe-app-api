@@ -13,3 +13,8 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 class RecipeDetailSerializer(RecipeSerializer):
     """Serializer for recipe detail view."""
+
+    class Meta(RecipeSerializer.Meta):
+        # The description is an additional field.
+        fields = RecipeSerializer.Meta.fields + ['description']
+
