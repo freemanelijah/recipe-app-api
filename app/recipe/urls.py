@@ -18,6 +18,7 @@ router = DefaultRouter()
 # Register our view with the router. Recipe is going to have auto generated endpoints.
 router.register('recipes', views.RecipeViewSet)
 router.register('tags', views.TagViewSet)
+router.register('ingredients', views.IngredientViewSet)
 
 # Used for reverse lookup
 app_name = 'recipe'

@@ -62,6 +62,7 @@ class Recipe(models.Model):
     # Possible to have many different recipes that have many different tags. Any recipe
     # can be associated to any tag and vice versa.
     tags = models.ManyToManyField('Tag')
+    ingredients = models.ManyToManyField('Ingredient')
 
     def __str__(self):
         return self.title
@@ -77,3 +78,14 @@ class Tag(models.Model):
     def __str__(self):
         return self.name
 
+
+class Ingredient(models.Model):
+    """Ingredients for recipes."""
+    name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self):
+        return self.name
