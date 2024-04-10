@@ -48,33 +48,64 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Create a new recipe."""
         serializer.save(user=self.request.user)
 
-
-# GenericViewSet allows you to use mixins. In order to update the tag, we
-# want to use the update model mixin.
-class TagViewSet(mixins.DestroyModelMixin,
-                 mixins.UpdateModelMixin,
-                 mixins.ListModelMixin,
-                 viewsets.GenericViewSet):
-    """Manage tags in the database."""
-    serializer_class = serializers.TagSerializer
-    queryset = Tag.objects.all()
+# Base of other ViewSets. RecipeAttr -> tags and ingredients are attributes assigned
+# to a recipe.
+class BaseRecipeAttrViewSet(mixins.DestroyModelMixin,
+                            mixins.UpdateModelMixin,
+                            mixins.ListModelMixin,
+                            viewsets.GenericViewSet):
+    """Base viewset for recipe attributes."""
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    # Override get_queryset method that comes with the viewset to return objects
-    # for the authenticated user. Without, default function will return all tags
-    # in the db.
     def get_queryset(self):
         """Filter queryset to authenticated user."""
         return self.queryset.filter(user=self.request.user).order_by('-name')
 
-class IngredientViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    """Manage ingredients in the database."""
+class TagViewSet(BaseRecipeAttrViewSet):
+    """Manage tags in teh database."""
+    serializer_class = serializers.TagSerializer
+    queryset = Tag.objects.all()
+
+class IngredientViewSet(BaseRecipeAttrViewSet):
+    """Manage ingredients in database."""
     serializer_class = serializers.IngredientSerializer
     queryset = Ingredient.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]  # All users must be authenticated when using API.
 
-    def get_queryset(self):
-        """Filter queryset to authenticated user."""
-        return self.queryset.filter(user=self.request.user).order_by('-name')
+
+# Refactor TagViewSet and IngredientViewSet. Lots of duplicate code and similar
+# functionality.
+# ----------------------------------------------------------------------------
+
+# GenericViewSet allows you to use mixins. In order to update the tag, we
+# want to use the update model mixin.
+#class TagViewSet(mixins.DestroyModelMixin,
+#                 mixins.UpdateModelMixin,
+#                 mixins.ListModelMixin,
+#                 viewsets.GenericViewSet):
+#    """Manage tags in the database."""
+#    serializer_class = serializers.TagSerializer
+#    queryset = Tag.objects.all()
+#    authentication_classes = [TokenAuthentication]
+#    permission_classes = [IsAuthenticated]
+#
+#    # Override get_queryset method that comes with the viewset to return objects
+#    # for the authenticated user. Without, default function will return all tags
+#    # in the db.
+#    def get_queryset(self):
+#        """Filter queryset to authenticated user."""
+#        return self.queryset.filter(user=self.request.user).order_by('-name')
+#
+#class IngredientViewSet(mixins.DestroyModelMixin,
+#                        mixins.UpdateModelMixin,
+#                        mixins.ListModelMixin,
+#                        viewsets.GenericViewSet):
+#    """Manage ingredients in the database."""
+#    serializer_class = serializers.IngredientSerializer
+#    queryset = Ingredient.objects.all()
+#    authentication_classes = [TokenAuthentication]
+#    permission_classes = [IsAuthenticated]  # All users must be authenticated when using API.
+#
+#    def get_queryset(self):
+#        """Filter queryset to authenticated user."""
+#        return self.queryset.filter(user=self.request.user).order_by('-name')

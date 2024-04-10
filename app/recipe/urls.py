@@ -15,7 +15,8 @@ from recipe import views
 
 
 router = DefaultRouter()
-# Register our view with the router. Recipe is going to have auto generated endpoints.
+# Register our view with the router. Recipe is going to have auto generated endpoints. The
+# URLs are generated based on the ViewSet.
 router.register('recipes', views.RecipeViewSet)
 router.register('tags', views.TagViewSet)
 router.register('ingredients', views.IngredientViewSet)
