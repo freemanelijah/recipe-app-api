@@ -1,6 +1,12 @@
 """
 Views for the recipe APIs.
 """
+from drf_spectacular.utils import (
+    extend_schema_view,
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes,
+)
 from rest_framework import (
     viewsets,
     mixins,  # Add to a view to add additional functionality.
@@ -23,6 +29,22 @@ from recipe import serializers
 # create multiple endpoints, list, detail, etc. When calling the detail
 # endpoint, need to have the ViewSet call the RecipeDetailSerializer. Override
 # the method get_serializer_class(self). (list-view endpoint is default).
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'tags',
+                OpenApiTypes.STR,
+                description='Comma separated list of IDs to filter',
+            ),
+            OpenApiParameter(
+                'ingredients',
+                OpenApiTypes.STR,
+                description='Comma separated list of ingredient IDs to filter',
+            )
+        ]
+    )
+)
 class RecipeViewSet(viewsets.ModelViewSet):
     """View for manage recipe APIs"""
     # Make the RecipeDetailSerializer the default serializer.
@@ -31,10 +53,29 @@ class RecipeViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]  # Need to be authenticated to reach API.
     permission_classes = [IsAuthenticated]  # Need to have permissions.
 
+    def _params_to_ints(self, qs):
+        """Convert a list of strings to integers"""
+        # Splitting a command seperated string, e.g. "1,2,3"
+        # Once split, we can use them for filtering.
+        return [int(str_id) for str_id in qs.split(',')]
+
     # Override get_queryset method.
     def get_queryset(self):
         """Retrieve recipes for authenticated users."""
-        return self.queryset.filter(user=self.request.user).order_by('-id')
+        tags = self.request.query_params.get('tags')
+        ingredients = self.request.query_params.get('ingredients')
+        queryset = self.queryset
+        if tags:
+            tag_ids = self._params_to_ints(tags)
+            queryset = queryset.filter(tags__id__in=tag_ids) # Filter on related fields in a DB using django.
+        if ingredients:
+            ingredient_ids = self._params_to_ints(ingredients)
+            queryset = queryset.filter(ingredients__id__in=ingredient_ids)
+
+        return queryset.filter(user=self.request.user).order_by('-id').distinct()
+
+        # Instead of returning the self queryset, instead return the one we are building.
+        #return self.queryset.filter(user=self.request.user).order_by('-id')
 
     def get_serializer_class(self):
         """Return the serializer class for request."""
@@ -76,6 +117,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 # Base of other ViewSets. RecipeAttr -> tags and ingredients are attributes assigned
 # to a recipe.
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'assigned_only',
+                OpenApiTypes.INT, enum=[0, 1], # Allowed to pass only 0 or 1 to assigned_only parameter
+                description='Filter by items assigned to recipe.',
+            )
+        ]
+    )
+)
 class BaseRecipeAttrViewSet(mixins.DestroyModelMixin,
                             mixins.UpdateModelMixin,
                             mixins.ListModelMixin,
@@ -86,7 +138,15 @@ class BaseRecipeAttrViewSet(mixins.DestroyModelMixin,
 
     def get_queryset(self):
         """Filter queryset to authenticated user."""
-        return self.queryset.filter(user=self.request.user).order_by('-name')
+        assigned_only = bool(
+            int(self.request.query_params.get('assigned_only', 0))  # 0 is default value that's returned
+        )
+        queryset = self.queryset
+        if assigned_only:
+            # There is a recipe associated with the value.
+            queryset = queryset.filter(recipe__isnull=False)
+
+        return queryset.filter(user=self.request.user).order_by('-name').distinct()
 
 class TagViewSet(BaseRecipeAttrViewSet):
     """Manage tags in teh database."""
