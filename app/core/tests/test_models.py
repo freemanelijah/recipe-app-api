@@ -1,6 +1,7 @@
 """
 Test for models.
 """
+from unittest.mock import patch  # tool to use to mock objects. Replace behaviour for purpose of testing.
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
@@ -85,3 +86,18 @@ class ModelTests(TestCase):
             name='Ingredient1',
         )
         self.assertEqual(str(ingredient), ingredient.name)
+
+    # patch the uuid function that's imported into the models. Replace the
+    # behaviour of UUID. We don't want to create a real one, so we mock
+    # the behaviour.
+    @patch('core.models.uuid.uuid4')
+    def test_recipe_file_name_uuid(self, mock_uuid):
+        """Test generating image path."""
+        uuid = "test-uuid"
+        mock_uuid.return_value = uuid
+        # recipe_image_file_path is used to generate the path to the image
+        # that is being uploaded. None is used instead of the instance
+        file_path = models.recipe_image_file_path(None, 'example.jpg')
+
+        self.assertEqual(file_path, f'uploads/recipe/{uuid}.jpg')
+

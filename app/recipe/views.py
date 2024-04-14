@@ -4,7 +4,10 @@ Views for the recipe APIs.
 from rest_framework import (
     viewsets,
     mixins,  # Add to a view to add additional functionality.
+    status,
 )
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
@@ -40,6 +43,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             # we'll get the list. Returning a reference to the class by not adding
             # (). Django will instantiate the class using the reference.
             return serializers.RecipeSerializer
+        elif self.action == 'upload_image':
+            # custom action defined as a different method in recipe view set. Actions
+            # are ways we can add additional functionality on top of default view set functionality.
+            return serializers.RecipeImageSerializer
+
         return self.serializer_class
 
     # Override behaviour for when Django rest frameworks saves a model in a viewset.
@@ -47,6 +55,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create a new recipe."""
         serializer.save(user=self.request.user)
+
+    # Define custom action to provide addtional functionality on top of the
+    # existing API. detail=True, action will apply to detail endpoint of model
+    # view set. A specific recipe-id is provided.
+    @action(methods=['POST'], detail=True, url_path='upload-image')
+    def upload_image(self, request, pk=None):
+        """Upload an image to recipe."""
+        recipe = self.get_object() # Get's the recipe object using the PK.
+        # Returns the image serializer as specified in the above get_serializer_class
+        serializer = self.get_serializer(recipe, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()  # Save image to the db.
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Assume serializer was not valid so return errors.
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # Base of other ViewSets. RecipeAttr -> tags and ingredients are attributes assigned
 # to a recipe.
